@@ -31,6 +31,27 @@ router.get('/', async (req, res) => {
   }
 });
 
+// POST /api/manpower  – add a new rate
+router.post('/', async (req, res) => {
+  try {
+    const { name, unitCost } = req.body;
+    if (!name || unitCost === undefined) return res.status(400).json({ message: 'name and unitCost are required' });
+
+    const config = await getOrCreate();
+    const stageId = name.toLowerCase().replace(/\s+/g, '_');
+    
+    if (config.rates.find(r => r.stageId === stageId)) {
+      return res.status(400).json({ message: 'A rate with this name already exists' });
+    }
+
+    config.rates.push({ stageId, name, unitCost });
+    await config.save();
+    res.status(201).json(config.rates);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
 // PUT /api/manpower  – replace all rates (array)
 router.put('/', async (req, res) => {
   try {
@@ -61,6 +82,24 @@ router.patch('/:stageId', async (req, res) => {
     res.json(config.rates);
   } catch (err) {
     res.status(400).json({ message: err.message });
+  }
+});
+
+// DELETE /api/manpower/:stageId
+router.delete('/:stageId', async (req, res) => {
+  try {
+    const config = await getOrCreate();
+    const initialLength = config.rates.length;
+    config.rates = config.rates.filter(r => r.stageId !== req.params.stageId);
+    
+    if (config.rates.length === initialLength) {
+      return res.status(404).json({ message: 'Stage not found' });
+    }
+
+    await config.save();
+    res.json(config.rates);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 });
 

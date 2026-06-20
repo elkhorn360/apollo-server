@@ -28,6 +28,27 @@ router.get('/', async (req, res) => {
   }
 });
 
+// POST /api/utilities – add a new utility rate
+router.post('/', async (req, res) => {
+  try {
+    const { name, unitCost } = req.body;
+    if (!name || unitCost === undefined) return res.status(400).json({ message: 'name and unitCost are required' });
+
+    const config = await getOrCreate();
+    const utilityId = name.toLowerCase().replace(/\s+/g, '_');
+    
+    if (config.rates.find(r => r.utilityId === utilityId)) {
+      return res.status(400).json({ message: 'A utility with this name already exists' });
+    }
+
+    config.rates.push({ utilityId, name, unitCost });
+    await config.save();
+    res.status(201).json(config.rates);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
 // PUT /api/utilities  – replace all rates
 router.put('/', async (req, res) => {
   try {
@@ -58,6 +79,24 @@ router.patch('/:utilityId', async (req, res) => {
     res.json(config.rates);
   } catch (err) {
     res.status(400).json({ message: err.message });
+  }
+});
+
+// DELETE /api/utilities/:utilityId
+router.delete('/:utilityId', async (req, res) => {
+  try {
+    const config = await getOrCreate();
+    const initialLength = config.rates.length;
+    config.rates = config.rates.filter(r => r.utilityId !== req.params.utilityId);
+    
+    if (config.rates.length === initialLength) {
+      return res.status(404).json({ message: 'Utility not found' });
+    }
+
+    await config.save();
+    res.json(config.rates);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 });
 

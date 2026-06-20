@@ -29,12 +29,41 @@ router.get('/:id', async (req, res) => {
 // POST /api/variants
 router.post('/', async (req, res) => {
   try {
-    const { name, bom, labourAllocations, utilityAllocations } = req.body;
+    const { name, modelName, modelCode, variantCode, bom, labourAllocations, utilityAllocations } = req.body;
     if (!name) return res.status(400).json({ message: 'name is required' });
-    const variant = await Variant.create({ name, bom: bom || [], labourAllocations, utilityAllocations });
+    const variant = await Variant.create({ name, modelName, modelCode, variantCode, bom: bom || [], labourAllocations, utilityAllocations });
     res.status(201).json(await variant.populate('bom.rawMaterial'));
   } catch (err) {
     res.status(400).json({ message: err.message });
+  }
+});
+
+// PUT /api/variants/model/update – update modelName and modelCode for all variants under a model name
+router.put('/model/update', async (req, res) => {
+  try {
+    const { oldModelName, newModelName, newModelCode } = req.body;
+    if (!oldModelName) return res.status(400).json({ message: 'oldModelName is required' });
+
+    await Variant.updateMany(
+      { modelName: oldModelName },
+      { $set: { modelName: newModelName, modelCode: newModelCode } }
+    );
+
+    const variants = await Variant.find().populate('bom.rawMaterial');
+    res.json(variants);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+// DELETE /api/variants/model/:modelName – delete all variants under a model name
+router.delete('/model/:modelName', async (req, res) => {
+  try {
+    const modelName = req.params.modelName;
+    await Variant.deleteMany({ modelName });
+    res.json({ message: `All variants for model ${modelName} deleted successfully` });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 });
 

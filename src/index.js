@@ -10,15 +10,16 @@ app.use(cors({
   origin: (origin, callback) => callback(null, true),
   credentials: true
 }));
+app.options('*', cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ── Routes ────────────────────────────────────────────────────────────────────
-app.use('/api/auth',          require('./routes/auth'));
+app.use('/api/auth', require('./routes/auth'));
 app.use('/api/raw-materials', require('./routes/rawMaterials'));
-app.use('/api/variants',      require('./routes/variants'));
-app.use('/api/manpower',      require('./routes/manpower'));
-app.use('/api/utilities',     require('./routes/utilities'));
+app.use('/api/variants', require('./routes/variants'));
+app.use('/api/manpower', require('./routes/manpower'));
+app.use('/api/utilities', require('./routes/utilities'));
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date() }));
@@ -33,7 +34,7 @@ app.use((err, req, res, next) => {
 });
 
 // ── Database + Server Start ───────────────────────────────────────────────────
-const PORT  = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5000;
 const MONGO = process.env.MONGODB_URI;
 
 if (!MONGO) {

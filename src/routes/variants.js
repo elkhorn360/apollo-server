@@ -29,10 +29,20 @@ router.get('/:id', async (req, res) => {
 // POST /api/variants
 router.post('/', async (req, res) => {
   try {
-    const { name, modelName, modelCode, variantCode, bom, labourAllocations, utilityAllocations } = req.body;
+    const { name, modelName, modelCode, variantCode, sizes, bom, labourAllocations, utilityAllocations } = req.body;
+    console.log('[POST /variants] sizes received:', sizes);
     if (!name) return res.status(400).json({ message: 'name is required' });
-    const variant = await Variant.create({ name, modelName, modelCode, variantCode, bom: bom || [], labourAllocations, utilityAllocations });
-    res.status(201).json(await variant.populate('bom.rawMaterial'));
+    const created = await Variant.create({
+      name, modelName, modelCode, variantCode,
+      sizes: Array.isArray(sizes) ? sizes : [],
+      bom: bom || [],
+      labourAllocations,
+      utilityAllocations
+    });
+    // Re-fetch the document so all schema fields (including sizes) serialize correctly
+    const variant = await Variant.findById(created._id).populate('bom.rawMaterial');
+    console.log('[POST /variants] sizes saved:', variant.sizes);
+    res.status(201).json(variant);
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
@@ -67,12 +77,35 @@ router.delete('/model/:modelName', async (req, res) => {
   }
 });
 
-// PUT /api/variants/:id  – update top-level fields (name, labourAllocations, utilityAllocations)
+// PUT /api/variants/:id  – update top-level fields
 router.put('/:id', async (req, res) => {
   try {
-    const variant = await Variant.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
-      .populate('bom.rawMaterial');
+    const { name, modelName, modelCode, variantCode, sizes, labourAllocations, utilityAllocations } = req.body;
+    console.log('[PUT /variants/:id] body:', JSON.stringify(req.body));
+    console.log('[PUT /variants/:id] sizes received:', sizes);
+
+    // Build update object explicitly so all field types (including arrays) are handled correctly
+    const update = {};
+    if (name               !== undefined) update.name               = name;
+    if (modelName          !== undefined) update.modelName          = modelName;
+    if (modelCode          !== undefined) update.modelCode          = modelCode;
+    if (variantCode        !== undefined) update.variantCode        = variantCode;
+    if (sizes              !== undefined) update.sizes              = Array.isArray(sizes) ? sizes : [];
+    if (labourAllocations  !== undefined) update.labourAllocations  = labourAllocations;
+    if (utilityAllocations !== undefined) update.utilityAllocations = utilityAllocations;
+
+    console.log('[PUT /variants/:id] update $set:', JSON.stringify(update));
+
+    await Variant.findByIdAndUpdate(
+      req.params.id,
+      { $set: update },
+      { new: true, runValidators: true }
+    );
+
+    // Re-fetch so all schema fields serialize correctly in Mongoose 8
+    const variant = await Variant.findById(req.params.id).populate('bom.rawMaterial');
     if (!variant) return res.status(404).json({ message: 'Variant not found' });
+    console.log('[PUT /variants/:id] sizes saved:', variant.sizes);
     res.json(variant);
   } catch (err) {
     res.status(400).json({ message: err.message });

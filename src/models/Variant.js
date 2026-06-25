@@ -10,6 +10,7 @@ const variantSchema = new mongoose.Schema({
   modelName: { type: String, trim: true, default: 'Default Model' },
   modelCode: { type: String, trim: true },
   variantCode: { type: String, trim: true, unique: true, sparse: true },
+  sizes: { type: [Number], default: [] },
   bom: [bomEntrySchema],
   labourAllocations:  { type: Map, of: Number, default: {} },
   utilityAllocations: { type: Map, of: Number, default: {} }

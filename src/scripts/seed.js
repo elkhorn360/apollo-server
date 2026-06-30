@@ -68,8 +68,20 @@ const seed = async () => {
     // 5. Create Initial Variant
     await Variant.create({
       name: 'Running Shoe - Basic',
-      labourAllocations: {},
-      utilityAllocations: {},
+      labourAllocations: [
+        { stageId: 'top_cut', quantity: 0.3 },
+        { stageId: 'top_finish', quantity: 0.2 },
+        { stageId: 'mount', quantity: 0.4 },
+        { stageId: 'sole_press', quantity: 0.3 },
+        { stageId: 'sockline', quantity: 0.2 },
+        { stageId: 'spray_finish', quantity: 0.2 }
+      ],
+      utilityAllocations: [
+        { utilityId: 'electricity', quantity: 10 },
+        { utilityId: 'water', quantity: 2 },
+        { utilityId: 'steam', quantity: 0 },
+        { utilityId: 'air', quantity: 5 }
+      ],
       bom: []
     });
     console.log('Default variant seeded');

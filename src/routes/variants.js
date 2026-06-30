@@ -36,8 +36,8 @@ router.post('/', async (req, res) => {
       name, modelName, modelCode, variantCode,
       sizes: Array.isArray(sizes) ? sizes : [],
       bom: bom || [],
-      labourAllocations,
-      utilityAllocations
+      labourAllocations: labourAllocations || [],
+      utilityAllocations: utilityAllocations || []
     });
     // Re-fetch the document so all schema fields (including sizes) serialize correctly
     const variant = await Variant.findById(created._id).populate('bom.rawMaterial');
@@ -169,6 +169,112 @@ router.delete('/:id/bom/:bomId', async (req, res) => {
     if (!variant) return res.status(404).json({ message: 'Variant not found' });
 
     variant.bom = variant.bom.filter(e => e._id.toString() !== req.params.bomId);
+    await variant.save();
+    res.json(await variant.populate('bom.rawMaterial'));
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// ── Labour sub-routes ─────────────────────────────────────────────────────────
+
+// POST /api/variants/:id/labour  – add stage to labour allocations
+router.post('/:id/labour', async (req, res) => {
+  try {
+    const { stageId, quantity } = req.body;
+    if (!stageId || quantity === undefined) {
+      return res.status(400).json({ message: 'stageId and quantity are required' });
+    }
+    const variant = await Variant.findById(req.params.id);
+    if (!variant) return res.status(404).json({ message: 'Variant not found' });
+
+    variant.labourAllocations.push({ stageId, quantity });
+    await variant.save();
+    res.status(201).json(await variant.populate('bom.rawMaterial'));
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+// PUT /api/variants/:id/labour/:labourId  – update a labour allocation
+router.put('/:id/labour/:labourId', async (req, res) => {
+  try {
+    const variant = await Variant.findById(req.params.id);
+    if (!variant) return res.status(404).json({ message: 'Variant not found' });
+
+    const entry = variant.labourAllocations.id(req.params.labourId);
+    if (!entry) return res.status(404).json({ message: 'Labour allocation not found' });
+
+    if (req.body.stageId !== undefined) entry.stageId = req.body.stageId;
+    if (req.body.quantity !== undefined) entry.quantity = req.body.quantity;
+
+    await variant.save();
+    res.json(await variant.populate('bom.rawMaterial'));
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+// DELETE /api/variants/:id/labour/:labourId
+router.delete('/:id/labour/:labourId', async (req, res) => {
+  try {
+    const variant = await Variant.findById(req.params.id);
+    if (!variant) return res.status(404).json({ message: 'Variant not found' });
+
+    variant.labourAllocations = variant.labourAllocations.filter(e => e._id.toString() !== req.params.labourId);
+    await variant.save();
+    res.json(await variant.populate('bom.rawMaterial'));
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// ── Utility sub-routes ────────────────────────────────────────────────────────
+
+// POST /api/variants/:id/utility  – add utility to utility allocations
+router.post('/:id/utility', async (req, res) => {
+  try {
+    const { utilityId, quantity } = req.body;
+    if (!utilityId || quantity === undefined) {
+      return res.status(400).json({ message: 'utilityId and quantity are required' });
+    }
+    const variant = await Variant.findById(req.params.id);
+    if (!variant) return res.status(404).json({ message: 'Variant not found' });
+
+    variant.utilityAllocations.push({ utilityId, quantity });
+    await variant.save();
+    res.status(201).json(await variant.populate('bom.rawMaterial'));
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+// PUT /api/variants/:id/utility/:utilityId  – update a utility allocation
+router.put('/:id/utility/:utilityId', async (req, res) => {
+  try {
+    const variant = await Variant.findById(req.params.id);
+    if (!variant) return res.status(404).json({ message: 'Variant not found' });
+
+    const entry = variant.utilityAllocations.id(req.params.utilityId);
+    if (!entry) return res.status(404).json({ message: 'Utility allocation not found' });
+
+    if (req.body.utilityId !== undefined) entry.utilityId = req.body.utilityId;
+    if (req.body.quantity !== undefined) entry.quantity = req.body.quantity;
+
+    await variant.save();
+    res.json(await variant.populate('bom.rawMaterial'));
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+// DELETE /api/variants/:id/utility/:utilityId
+router.delete('/:id/utility/:utilityId', async (req, res) => {
+  try {
+    const variant = await Variant.findById(req.params.id);
+    if (!variant) return res.status(404).json({ message: 'Variant not found' });
+
+    variant.utilityAllocations = variant.utilityAllocations.filter(e => e._id.toString() !== req.params.utilityId);
     await variant.save();
     res.json(await variant.populate('bom.rawMaterial'));
   } catch (err) {

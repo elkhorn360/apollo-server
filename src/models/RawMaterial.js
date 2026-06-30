@@ -4,7 +4,7 @@ const rawMaterialSchema = new mongoose.Schema({
   category: {
     type: String,
     required: true,
-    enum: ['leather', 'sole', 'adhesives', 'spray', 'threads', 'other'],
+    enum: ['leather', 'sole', 'adhesives', 'spray', 'threads', 'packing_accessories', 'other'],
     lowercase: true
   },
   name:     { type: String, required: true, trim: true },
